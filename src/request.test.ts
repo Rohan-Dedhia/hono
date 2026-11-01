@@ -44,6 +44,24 @@ describe('Query', () => {
     const tags = req.queries('tag')
     expect(tags).toEqual(['@1', '@2'])
   })
+
+  test('query() does not match across query separators inside the requested key', () => {
+    const req1 = new HonoRequest(new Request('http://localhost?a&b=3'))
+    expect(req1.query('a&b')).toBeUndefined()
+    expect(req1.queries('a&b')).toBeUndefined()
+
+    const req2 = new HonoRequest(new Request('http://localhost?a=b=3'))
+    expect(req2.query('a=b')).toBeUndefined()
+    expect(req2.queries('a=b')).toBeUndefined()
+
+    const req3 = new HonoRequest(new Request('http://localhost?a%26b=3'))
+    expect(req3.query('a&b')).toBe('3')
+    expect(req3.queries('a&b')).toEqual(['3'])
+
+    const req4 = new HonoRequest(new Request('http://localhost?a%3Db=3'))
+    expect(req4.query('a=b')).toBe('3')
+    expect(req4.queries('a=b')).toEqual(['3'])
+  })
 })
 
 describe('Param', () => {

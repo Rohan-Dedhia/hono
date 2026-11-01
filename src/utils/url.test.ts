@@ -365,6 +365,13 @@ describe('url', () => {
       searchParams = new URLSearchParams('?name=sam=tom')
       expect(getQueryParam('name', searchParams.get('name')?.toString()))
     })
+
+    it('does not match across query separators inside the requested key', () => {
+      expect(getQueryParam('http://example.com/?a&b=3', 'a&b')).toBe(undefined)
+      expect(getQueryParam('http://example.com/?a=b=3', 'a=b')).toBe(undefined)
+      expect(getQueryParam('http://example.com/?a%26b=3', 'a&b')).toBe('3')
+      expect(getQueryParam('http://example.com/?a%3Db=3', 'a=b')).toBe('3')
+    })
   })
 
   describe('getQueryParams', () => {
