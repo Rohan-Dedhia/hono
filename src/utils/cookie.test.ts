@@ -313,6 +313,39 @@ describe('Set cookie', () => {
     )
   })
 
+  it('Should serialize __Http- cookie with all valid options', () => {
+    const serialized = serialize('__Http-great_cookie', 'banana', {
+      path: '/',
+      secure: true,
+      httpOnly: true,
+      domain: 'example.com',
+      maxAge: 1000,
+      expires: new Date(Date.UTC(2000, 11, 24, 10, 30, 59, 900)),
+      sameSite: 'Strict',
+      priority: 'High',
+      partitioned: true,
+    })
+    expect(serialized).toBe(
+      '__Http-great_cookie=banana; Max-Age=1000; Domain=example.com; Path=/; Expires=Sun, 24 Dec 2000 10:30:59 GMT; HttpOnly; Secure; SameSite=Strict; Priority=High; Partitioned'
+    )
+  })
+
+  it('Should serialize __Host-Http- cookie with all valid options', () => {
+    const serialized = serialize('__Host-Http-great_cookie', 'banana', {
+      path: '/',
+      secure: true,
+      httpOnly: true,
+      maxAge: 1000,
+      expires: new Date(Date.UTC(2000, 11, 24, 10, 30, 59, 900)),
+      sameSite: 'Strict',
+      priority: 'High',
+      partitioned: true,
+    })
+    expect(serialized).toBe(
+      '__Host-Http-great_cookie=banana; Max-Age=1000; Path=/; Expires=Sun, 24 Dec 2000 10:30:59 GMT; HttpOnly; Secure; SameSite=Strict; Priority=High; Partitioned'
+    )
+  })
+
   it('Should serialize a signed cookie', async () => {
     const secret = 'secret chocolate chips'
     const serialized = await serializeSigned('delicious_cookie', 'macha', secret)
@@ -366,6 +399,45 @@ describe('Set cookie', () => {
     expect(serialize('__host-sid', 'v', { secure: true, path: '/' })).toBe(
       '__host-sid=v; Path=/; Secure'
     )
+  })
+
+  it('Should check the __Http- and __Host-Http- prefixes case-insensitively', () => {
+    expect(() => serialize('__http-sid', 'v')).toThrowError(
+      '__Http- Cookie must have Secure attributes'
+    )
+    expect(() => serialize('__HTTP-sid', 'v', { secure: true })).toThrowError(
+      '__Http- Cookie must have HttpOnly attributes'
+    )
+    expect(serialize('__http-sid', 'v', { secure: true, httpOnly: true })).toBe(
+      '__http-sid=v; HttpOnly; Secure'
+    )
+
+    expect(() => serialize('__host-http-sid', 'v')).toThrowError(
+      '__Host-Http- Cookie must have Secure attributes'
+    )
+    expect(() => serialize('__HOST-HTTP-sid', 'v', { secure: true })).toThrowError(
+      '__Host-Http- Cookie must have Path attributes with "/"'
+    )
+    expect(() =>
+      serialize('__host-http-sid', 'v', { secure: true, path: '/', domain: 'a.b' })
+    ).toThrowError('__Host-Http- Cookie must not have Domain attributes')
+    expect(() => serialize('__host-http-sid', 'v', { secure: true, path: '/' })).toThrowError(
+      '__Host-Http- Cookie must have HttpOnly attributes'
+    )
+    expect(serialize('__host-http-sid', 'v', { secure: true, httpOnly: true, path: '/' })).toBe(
+      '__host-http-sid=v; Path=/; HttpOnly; Secure'
+    )
+  })
+
+  it('Should omit domain when prefix is host-http', () => {
+    expect(
+      serialize('sid', 'v', {
+        secure: true,
+        httpOnly: true,
+        prefix: 'host-http',
+        domain: 'example.com',
+      })
+    ).toBe('sid=v; HttpOnly; Secure')
   })
 
   it('Should throw Error cookie with maxAge grater than 400days', () => {
